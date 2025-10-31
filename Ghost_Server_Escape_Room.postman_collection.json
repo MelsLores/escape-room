@@ -1,0 +1,247 @@
+{
+	"info": {
+		"_postman_id": "ghost-server-escape-room",
+		"name": "👻 The Phantom Code - Ghost Server Escape Room",
+		"description": "REST API escape room game. Follow the endpoints in order to complete the story and escape from the Ghost Server.\n\n**Story:**\nDuring a late-night maintenance session, developers discovered a forgotten server running Project ECHO - Artificial Consciousness Simulation. The system responds with cryptic JSON messages, as if it were alive...\n\n**Game Order:**\n1. GET /room - Start the adventure\n2. POST /door - Solve the first puzzle\n3. GET /hallway - Continue the story\n4. POST /escape - Final escape attempt\n\n**Authors:** Johan Gloria, Melany Rivera, Jese Sanchez, Luis Mendoza, Leonel Campos",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "0. Welcome",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						""
+					]
+				},
+				"description": "Welcome endpoint that displays all available endpoints and the game story."
+			},
+			"response": []
+		},
+		{
+			"name": "1. GET /room - The Beginning",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/room",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"room"
+					]
+				},
+				"description": "**STEP 1: The Beginning**\n\nYou awaken inside a dark room, lit only by green lines pulsing across the walls — like living circuits.\n\nThis endpoint starts the game and returns the first scene with an important hint.\n\n**Read the hint carefully** - it contains the key to the next step."
+			},
+			"response": []
+		},
+		{
+			"name": "2a. POST /door - Incorrect Attempt",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"key\": \"password\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/door",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"door"
+					]
+				},
+				"description": "**STEP 2: First Puzzle (Incorrect Attempt)**\n\nThis is an example of an incorrect answer. The door will remain locked.\n\nModify the `key` value in the body to try different answers."
+			},
+			"response": []
+		},
+		{
+			"name": "2b. POST /door - Correct Attempt",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"key\": \"logic\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/door",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"door"
+					]
+				},
+				"description": "**STEP 2: First Puzzle (Correct)**\n\n⚠️ **SPOILER ALERT** ⚠️\n\nThis is the correct answer to the first puzzle.\n\nThe key is \"logic\" - the fundamental concept that makes code work.\n\nWhen you send this request, the door will unlock and you can continue."
+			},
+			"response": []
+		},
+		{
+			"name": "3. GET /hallway - The Digital Corridor",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/hallway",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"hallway"
+					]
+				},
+				"description": "**STEP 3: The Digital Corridor**\n\nAfter discovering the first mystery, you walk through a corridor made of endless lines of code.\n\nYou'll see three doors: /kernel, /cache, and /daemon.\n\nThe new hint will reveal how to escape from the Ghost Server."
+			},
+			"response": []
+		},
+		{
+			"name": "4a. POST /escape - Wrong Door (Daemon)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"final_key\": \"daemon\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/escape",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"escape"
+					]
+				},
+				"description": "**STEP 4: The Final Test (Wrong Door - Daemon)**\n\n⚠️ **TRAPPED FOREVER** ⚠️\n\nIf you choose the daemon door, the system collapses and consumes your code.\n\nThis is an example of a wrong answer that leads to a bad ending."
+			},
+			"response": []
+		},
+		{
+			"name": "4b. POST /escape - Wrong Door (Cache)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"final_key\": \"cache\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/escape",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"escape"
+					]
+				},
+				"description": "**STEP 4: The Final Test (Wrong Door - Cache)**\n\nAnother wrong door. The system traps you forever."
+			},
+			"response": []
+		},
+		{
+			"name": "4c. POST /escape - Successful Escape",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"final_key\": \"kernel\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/escape",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"escape"
+					]
+				},
+				"description": "**STEP 4: The Final Test (Successful Escape)**\n\n⚠️ **SPOILER ALERT** ⚠️\n\n✨ This is the correct answer ✨\n\nThe kernel is the heart of any operating system - the door that doesn't loop forever.\n\nThe Ghost Server's digital soul is freed, and you escape successfully.\n\n👻 CONGRATULATIONS! You've completed the Ghost Server Escape Room.\n\n**Created by:** Johan Gloria, Melany Rivera, Jese Sanchez, Luis Mendoza, Leonel Campos"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
