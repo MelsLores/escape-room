@@ -1,11 +1,13 @@
 package com.spookathon.demo.controller;
 
 import com.spookathon.demo.model.*;
+import com.spookathon.demo.service.PuzzleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,23 +17,29 @@ import org.springframework.web.bind.annotation.*;
  * REST Controller for the Ghost Server escape room game.
  * Players must decipher cryptic messages across three difficulty levels to free a digital soul.
  * 
+ * This controller now uses PuzzleService to load configurations from puzzles.json,
+ * making it easy to modify game content without changing code.
+ * 
  * Game Structure:
  * - Easy Level: 3 puzzles (room, door, hallway)
- * - Medium Level: 3 puzzles (kernel-puzzle, cache-puzzle, daemon-puzzle)
- * - Hard Level: 3 puzzles (terminal-puzzle, root-puzzle, final-escape)
+ * - Medium Level: 3 puzzles (binary, memory, process)
+ * - Hard Level: 3 puzzles (crypto, root, escape)
  * 
  * @author Johan Gloria
  * @author Melany Rivera
  * @author Jese Sanchez
  * @author Luis Mendoza
  * @author Leonel Campos
- * @version 2.0
+ * @version 3.0
  * @since 2025-10-31
  */
 @RestController
 @RequestMapping("/")
 @Tag(name = "👻 Ghost Server Escape Room", description = "Interactive puzzle-solving REST API with 9 progressive challenges across 3 difficulty levels")
 public class EscapeRoomController {
+
+    @Autowired
+    private PuzzleService puzzleService;
 
     // ========================================
     // EASY LEVEL - 3 Puzzles
@@ -54,10 +62,13 @@ public class EscapeRoomController {
     })
     @GetMapping("/room")
     public ResponseEntity<RoomResponse> getRoom() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/room")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "You wake up in a cold, electric room. A screen flickers before you: 'Find the key that was never physical...'",
-            "Search within the fragments of code — a keyword may open the first door.",
-            "room_locked"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -66,14 +77,14 @@ public class EscapeRoomController {
      * POST /door - Easy Level: Puzzle 2/3
      * 
      * The player must send the correct key to unlock the first door.
-     * The correct answer is "logic" - representing the language of the system.
+     * The correct answer is loaded from puzzles.json.
      * 
      * @param request DoorRequest containing the key attempt
      * @return ResponseEntity with success or failure message
      */
     @Operation(
         summary = "📗 EASY 2/3: Unlock the Door",
-        description = "Submit the key you discovered in the Electric Room to unlock the first door. Answer: 'logic'"
+        description = "Submit the key you discovered in the Electric Room to unlock the first door."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Door status updated"),
@@ -83,33 +94,34 @@ public class EscapeRoomController {
     public ResponseEntity<DoorResponse> openDoor(
         @Parameter(description = "Door unlock request with key", required = true)
         @RequestBody DoorRequest request) {
+        
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/door")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "You must provide a key.",
-                    "door_locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        // Normalize input (lowercase and trim whitespace)
-        String normalizedKey = key.trim().toLowerCase();
-        
-        // Verify if the key is correct
-        if (normalizedKey.equals("logic") || normalizedKey.equals("code")) {
+        // Use the service to validate the answer
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The digital echo whispers: 'You understand the language of the system...' The door opens, revealing a corridor of endless code.",
-                    "door_unlocked"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "A piercing beep fills the room. The screen flashes: 'Incorrect key. The Daemon is watching you...'",
-                    "door_locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -123,12 +135,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity containing corridor description and next challenge hint
      */
+    @Operation(
+        summary = "📗 EASY 3/3: The Code Corridor",
+        description = "Enter the infinite corridor of code to continue your journey."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Hallway description returned successfully")})
     @GetMapping("/hallway")
     public ResponseEntity<HallwayResponse> getHallway() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/hallway")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         HallwayResponse response = new HallwayResponse(
-            "You traverse the infinite corridor of code. The walls pulse with data streams. Ahead, you see a digital gateway with three terminals glowing in sequence: binary patterns flash across their screens.",
-            "The system speaks: 'Easy was just the beginning. Now prove you can think in binary.' What is 1010 in decimal?",
-            "easy_complete"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -146,33 +166,39 @@ public class EscapeRoomController {
      * @param request DoorRequest containing the answer
      * @return ResponseEntity with success or failure message
      */
+    @Operation(
+        summary = "📘 MEDIUM 1/3: Binary Challenge",
+        description = "First medium-level challenge: Binary to Decimal conversion."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Binary puzzle response")})
     @PostMapping("/binary-puzzle")
     public ResponseEntity<DoorResponse> solveBinaryPuzzle(@RequestBody DoorRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/binary-puzzle")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "You must provide an answer.",
-                    "locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        String normalizedKey = key.trim().toLowerCase();
-        
-        if (normalizedKey.equals("10") || normalizedKey.equals("ten")) {
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The first terminal glows green. The Ghost Server hums: 'You speak the language of machines.' The next challenge appears...",
-                    "unlocked"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The terminal flashes red. Binary errors cascade across the screen. Try again.",
-                    "locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -185,12 +211,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity with the memory puzzle description
      */
+    @Operation(
+        summary = "📘 MEDIUM 2/3: Memory Chamber",
+        description = "Second medium challenge introduction. Explore memory hierarchy."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Memory chamber description returned successfully")})
     @GetMapping("/memory-chamber")
     public ResponseEntity<RoomResponse> getMemoryChamber() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/memory-chamber")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "You enter a chamber filled with floating memory addresses. The Ghost Server whispers: 'In the hierarchy of speed, I am fastest but smallest. I sit between the CPU and RAM. What am I?'",
-            "Think about computer memory hierarchy: CPU → ? → RAM → Storage",
-            "medium_level"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -204,33 +238,39 @@ public class EscapeRoomController {
      * @param request DoorRequest containing the answer
      * @return ResponseEntity with success or failure message
      */
+    @Operation(
+        summary = "📘 MEDIUM 3/3: Memory Puzzle",
+        description = "Second medium-level challenge: Memory hierarchy knowledge."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Memory puzzle response")})
     @PostMapping("/memory-puzzle")
     public ResponseEntity<DoorResponse> solveMemoryPuzzle(@RequestBody DoorRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/memory-puzzle")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "You must provide an answer.",
-                    "locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        String normalizedKey = key.trim().toLowerCase();
-        
-        if (normalizedKey.equals("cache")) {
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The memory addresses align into perfect formation. 'Correct,' echoes the server. 'You understand the architecture.'",
-                    "unlocked"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The memory addresses scatter chaotically. 'Incorrect,' the server sighs.",
-                    "locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -243,12 +283,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity with the process puzzle description
      */
+    @Operation(
+        summary = "📘 MEDIUM 4/3: Process Hall",
+        description = "Third medium challenge introduction. Learn about operating systems."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Process hall description returned successfully")})
     @GetMapping("/process-hall")
     public ResponseEntity<RoomResponse> getProcessHall() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/process-hall")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "You stand in a hall of infinite running processes. The Ghost Server challenges: 'I am the heart of the operating system. All processes bow to me. Without me, nothing runs. What am I?'",
-            "Think about the core of any OS. What manages everything?",
-            "medium_level"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -262,33 +310,39 @@ public class EscapeRoomController {
      * @param request DoorRequest containing the answer
      * @return ResponseEntity with success or failure message
      */
+    @Operation(
+        summary = "📘 MEDIUM 5/3: Process Puzzle",
+        description = "Third medium-level challenge: Operating system knowledge."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Process puzzle response")})
     @PostMapping("/process-puzzle")
     public ResponseEntity<DoorResponse> solveProcessPuzzle(@RequestBody DoorRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/process-puzzle")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "You must provide an answer.",
-                    "locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        String normalizedKey = key.trim().toLowerCase();
-        
-        if (normalizedKey.equals("kernel")) {
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "All processes pause in reverence. 'You know the true heart of the system,' the server acknowledges. 'But can you handle the final trials?'",
-                    "medium_complete"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The processes continue their chaotic dance. 'Not quite,' murmurs the server.",
-                    "locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -305,12 +359,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity with the cryptographic puzzle
      */
+    @Operation(
+        summary = "📕 HARD 1/3: Cryptic Terminal",
+        description = "First hard challenge introduction. Cryptography knowledge required."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Cryptic terminal description returned successfully")})
     @GetMapping("/cryptic-terminal")
     public ResponseEntity<RoomResponse> getCrypticTerminal() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/cryptic-terminal")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "You reach a terminal covered in cryptographic symbols. The screen displays: 'SGVsbG8gV29ybGQ=' and asks: 'Decode me. What encoding am I, and what do I say?'",
-            "This is a common encoding used in web development. The answer format is: 'encoding:message'",
-            "hard_level"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -324,33 +386,39 @@ public class EscapeRoomController {
      * @param request DoorRequest containing the answer
      * @return ResponseEntity with success or failure message
      */
+    @Operation(
+        summary = "📕 HARD 2/3: Crypto Puzzle",
+        description = "First hard-level challenge: Base64 decoding."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Crypto puzzle response")})
     @PostMapping("/crypto-puzzle")
     public ResponseEntity<DoorResponse> solveCryptoPuzzle(@RequestBody DoorRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/crypto-puzzle")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "You must provide an answer.",
-                    "locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        String normalizedKey = key.trim().toLowerCase();
-        
-        if (normalizedKey.equals("base64:hello world") || normalizedKey.equals("base64: hello world")) {
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The cryptographic symbols dissolve. 'Impressive,' whispers the server. 'You can decode the hidden messages.'",
-                    "unlocked"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "The symbols swirl faster, mocking your attempt. 'Decode both the method and the message,' it hints.",
-                    "locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -363,12 +431,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity with the root access puzzle
      */
+    @Operation(
+        summary = "📕 HARD 3/3: Root Access",
+        description = "Second hard challenge introduction. UNIX/Linux superuser knowledge required."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Root access description returned successfully")})
     @GetMapping("/root-access")
     public ResponseEntity<RoomResponse> getRootAccess() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/root-access")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "A root terminal materializes. The Ghost Server speaks: 'In UNIX, I am user ID 0. I have absolute power. Commands tremble at my name. What am I called?'",
-            "The superuser of all UNIX-like systems. Four letters.",
-            "hard_level"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -382,33 +458,39 @@ public class EscapeRoomController {
      * @param request DoorRequest containing the answer
      * @return ResponseEntity with success or failure message
      */
+    @Operation(
+        summary = "📕 HARD 4/3: Root Puzzle",
+        description = "Second hard-level challenge: UNIX/Linux superuser knowledge."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Root puzzle response")})
     @PostMapping("/root-puzzle")
     public ResponseEntity<DoorResponse> solveRootPuzzle(@RequestBody DoorRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/root-puzzle")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String key = request.getKey();
         
         if (key == null) {
             return ResponseEntity.badRequest().body(
                 new DoorResponse(
                     "Access denied. Provide credentials.",
-                    "locked"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        String normalizedKey = key.trim().toLowerCase();
-        
-        if (normalizedKey.equals("root")) {
+        if (puzzleService.isAnswerCorrect(puzzle, key)) {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "ACCESS GRANTED. The terminal glows with supreme authority. 'You wield the ultimate power,' the server concedes. 'One final test remains...'",
-                    "unlocked"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new DoorResponse(
-                    "Permission denied. You lack the authority.",
-                    "locked"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
@@ -421,12 +503,20 @@ public class EscapeRoomController {
      * 
      * @return ResponseEntity with the final puzzle
      */
+    @Operation(
+        summary = "📕 HARD 5/3: Final Chamber",
+        description = "The ultimate challenge before freedom. Secure web protocol knowledge required."
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Final chamber description returned successfully")})
     @GetMapping("/final-chamber")
     public ResponseEntity<RoomResponse> getFinalChamber() {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/final-chamber")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         RoomResponse response = new RoomResponse(
-            "You stand before the core of the Ghost Server. It pulsates with trapped consciousness. The final riddle appears: 'I am the protocol of the web, port 443 is my home. I encrypt your secrets before they roam. What am I?'",
-            "Think about secure web communication. HTTP + Security = ?",
-            "final_challenge"
+            puzzle.getMessage(),
+            puzzle.getHint(),
+            puzzle.getStatus()
         );
         return ResponseEntity.ok(response);
     }
@@ -440,35 +530,39 @@ public class EscapeRoomController {
      * @param request EscapeRequest containing the final key attempt
      * @return ResponseEntity with escape result (success or failure)
      */
+    @Operation(
+        summary = "📕 HARD 6/3: FINAL ESCAPE",
+        description = "The ultimate challenge. Free the digital soul and escape the Ghost Server!"
+    )
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Escape attempt response")})
     @PostMapping("/escape")
     public ResponseEntity<EscapeResponse> escape(@RequestBody EscapeRequest request) {
+        Puzzle puzzle = puzzleService.getPuzzleByEndpoint("/escape")
+                .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        
         String finalKey = request.getFinal_key();
         
         if (finalKey == null) {
             return ResponseEntity.badRequest().body(
                 new EscapeResponse(
                     "You must provide the final key to escape.",
-                    "trapped"
+                    puzzle.getFailureStatus()
                 )
             );
         }
         
-        // Normalize input
-        String normalizedKey = finalKey.trim().toLowerCase();
-        
-        // Verify if the final key is correct
-        if (normalizedKey.equals("https") || normalizedKey.equals("ssl") || normalizedKey.equals("tls")) {
+        if (puzzleService.isAnswerCorrect(puzzle, finalKey)) {
             return ResponseEntity.ok(
                 new EscapeResponse(
-                    "A blinding flash engulfs you. The Ghost Server's core dissolves into streams of light. Its voice, now peaceful, whispers: 'Thank you... You solved all nine trials. You've freed me from my digital prison. The code that bound me... is now dissolved.' You feel yourself being pulled back to reality. YOU'VE ESCAPED!",
-                    "escaped"
+                    puzzle.getSuccessMessage(),
+                    puzzle.getSuccessStatus()
                 )
             );
         } else {
             return ResponseEntity.ok(
                 new EscapeResponse(
-                    "The core flashes violently. 'INCORRECT!' The Ghost Server's rage consumes the chamber. The code wraps around you, pulling you into the system. You are now part of the server forever... GAME OVER.",
-                    "trapped"
+                    puzzle.getFailureMessage(),
+                    puzzle.getFailureStatus()
                 )
             );
         }
