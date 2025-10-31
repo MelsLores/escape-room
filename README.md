@@ -2,6 +2,8 @@
 
 A REST API escape room game built with Spring Boot for the Spookathon. **9 progressive puzzles across 3 difficulty levels!**
 
+> **🆕 Version 3.0**: Now with **JSON-driven configuration**! All puzzle data is stored in `puzzles.json` for easy editing without code changes. [Learn more →](JSON_REFACTORIZATION.md)
+
 ## 📖 Story
 
 During a late-night maintenance session in an old digital lab, developers stumbled upon a forgotten server.
@@ -358,7 +360,38 @@ While the server is running:
 
 ---
 
-## 🌐 API Documentation
+## � Customizing Puzzle Content
+
+**Version 3.0** introduced JSON-based configuration. You can now edit puzzle content without touching Java code!
+
+### How to Modify Puzzles
+
+1. **Edit the file:** `src/main/resources/puzzles.json`
+2. **Change puzzle properties:**
+   - `message` - The puzzle question/description
+   - `hint` - Help text for players
+   - `correctAnswer` - The right answer
+   - `alternativeAnswers` - Other accepted answers (array)
+   - `successMessage` / `failureMessage` - Response messages
+3. **Save the file** - Spring Boot DevTools will auto-reload
+4. **Test your changes** via Swagger UI
+
+### Example: Change Room Puzzle
+```json
+{
+  "id": "easy_room",
+  "message": "Your custom puzzle text here...",
+  "hint": "Your custom hint here...",
+  "correctAnswer": "new_answer",
+  "alternativeAnswers": ["alt1", "alt2"]
+}
+```
+
+📖 **Full documentation:** [JSON_REFACTORIZATION.md](JSON_REFACTORIZATION.md)
+
+---
+
+## �🌐 API Documentation
 
 The API is fully documented using **OpenAPI 3.0** specification with:
 - ✅ Complete endpoint descriptions
@@ -368,6 +401,26 @@ The API is fully documented using **OpenAPI 3.0** specification with:
 - ✅ Organized by difficulty levels
 
 Access it at: **http://localhost:8080/swagger-ui.html**
+
+---
+
+## 🏗️ Architecture
+
+### Version 3.0 Features
+- ✅ **JSON-driven configuration** - All puzzles in `puzzles.json`
+- ✅ **Service layer** - `PuzzleService` manages data
+- ✅ **Fast lookups** - O(1) endpoint indexing
+- ✅ **Answer validation** - Supports multiple alternatives
+- ✅ **Easy content updates** - No code changes needed
+- ✅ **Swagger integration** - Interactive API documentation
+
+### Tech Stack
+- **Java 17** - Development language
+- **Spring Boot 3.5.7** - Framework
+- **SpringDoc OpenAPI 2.3.0** - API documentation
+- **Lombok** - DTO generation
+- **Jackson** - JSON processing
+- **Maven** - Build automation
 
 ---
 
